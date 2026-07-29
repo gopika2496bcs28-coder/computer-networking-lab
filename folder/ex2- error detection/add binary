@@ -1,3 +1,9 @@
+Given two binary strings a and b, return their sum as a binary string.
+Example 1:
+Input: a = "11", b = "1"
+Output: "100"
+
+
 #include <stdlib.h>
 #include <string.h>
 char* addBinary(char* a, char* b) {
@@ -20,3 +26,14 @@ char* addBinary(char* a, char* b) {
     }   
     return res;
 }
+
+
+Input
+a =
+"11"
+b =
+"1"
+Output
+"100"
+Expected
+"100"
