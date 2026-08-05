@@ -1,0 +1,234 @@
+#include <stdio.h>
+#include <string.h>
+char inputText[100], outputText[100];
+char data[800], generator[100], codeword[900], received[900], rem[100], temp[100];
+int dataLen, genLen, codewordLen;
+int isAlphanumeric(char *str) {
+    int i;
+    for (i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))) {
+            return 0;
+        }
+    }
+    return 1;
+}
+int isGoodDivisor(char *gen) {
+    int len = strlen(gen);
+    if (len < 2) return 0;
+    if (gen[0] == '1' && gen[len - 1] == '1') return 1;
+    return 0;
+}
+void stringToBinary(char *text, char *binaryResult) {
+    int i, j;
+    binaryResult[0] = '\0';
+    for (i = 0; text[i] != '\0'; i++) {
+        char ch = text[i];
+        for (j = 7; j >= 0; j--) {
+            if ((ch >> j) & 1) strcat(binaryResult, "1");
+            else strcat(binaryResult, "0");
+        }
+    }
+}
+void binaryToString(char *binary, char *textResult) {
+    int len = strlen(binary);
+    int textIndex = 0;
+    int i, j;
+    for (i = 0; i < len - 7; i += 8) {
+        char ch = 0;
+        for (j = 0; j < 8; j++) {
+            ch = (ch << 1) | (binary[i + j] - '0');
+        }
+        textResult[textIndex++] = ch;
+    }
+    textResult[textIndex] = '\0';
+}
+int countOnes(char *str) {
+    int count = 0, i;
+    for (i = 0; str[i] != '\0'; i++) {
+        if (str[i] == '1') count++;
+    }
+    return count;
+}
+void injectErrors(int numErrors, int totalLen) {
+    int pos, i;
+    for (i = 0; i < numErrors; i++) {
+        printf("Enter bit index to flip (%d of %d) [0 to %d]: ", i + 1, numErrors, totalLen - 1);
+        scanf("%d", &pos);
+        if (pos >= 0 && pos < totalLen) {
+            received[pos] = (received[pos] == '0') ? '1' : '0';
+        }
+    }
+}
+void runParityDemo() {
+    char parityBit;
+    int parityChoice, simChoice, numErrors, len;
+    char receivedPayload[800];
+    printf("\n--- PARITY METHOD ---\n1. Even Parity\n2. Odd Parity\nSelect: ");
+    scanf("%d", &parityChoice);
+    if (parityChoice != 1 && parityChoice != 2) return;
+    printf("Enter alphanumeric text: ");
+    scanf("%s", inputText);
+    if (!isAlphanumeric(inputText)) return;
+    stringToBinary(inputText, data);
+    int ones = countOnes(data);
+    parityBit = (parityChoice == 1) ? ((ones % 2 == 0) ? '0' : '1') : ((ones % 2 != 0) ? '0' : '1');
+    strcpy(codeword, data);
+    len = strlen(codeword);
+    codeword[len] = parityBit;
+    codeword[len + 1] = '\0';
+    codewordLen = strlen(codeword);
+    printf("\n1. Error-Free\n2. Introduce Errors\nSelect: ");
+    scanf("%d", &simChoice);
+    strcpy(received, codeword);
+    if (simChoice == 2) {
+        printf("How many bits to flip? ");
+        scanf("%d", &numErrors);
+        injectErrors(numErrors, codewordLen);
+    }
+    strncpy(receivedPayload, received, strlen(data));
+    receivedPayload[strlen(data)] = '\0';
+    binaryToString(receivedPayload, outputText);
+    printf("\nTransmitted Codeword: %s\n", codeword);
+    printf("Received Codeword   : %s\n", received);
+    printf("Received Message    : %s\n", outputText);
+    int isValid = (parityChoice == 1 && (countOnes(received) % 2 == 0)) || (parityChoice == 2 && (countOnes(received) % 2 != 0));
+    printf("Status              : %s\n", isValid ? "No error detected!" : "Error safely detected!");
+}
+void calculateChecksum(char *b1, char *b2, char *result) {
+    int carry = 0, i;
+    for (i = 7; i >= 0; i--) {
+        int sum = (b1[i] - '0') + (b2[i] - '0') + carry;
+        result[i] = (sum % 2) + '0';
+        carry = sum / 2;
+    }
+    if (carry == 1) {
+        for (i = 7; i >= 0; i--) {
+            int sum = (result[i] - '0') + carry;
+            result[i] = (sum % 2) + '0';
+            carry = sum / 2;
+        }
+    }
+    result[8] = '\0';
+    for (i = 0; i < 8; i++) result[i] = (result[i] == '0') ? '1' : '0';
+}
+void runChecksumDemo() {
+    char block1[10], block2[10], chksum[10], recChksum[10];
+    int simChoice, numErrors, sepChoice;
+    char rBlock1[10], rBlock2[10], rChksum[10], receivedPayload[20];
+    printf("\n--- CHECKSUM METHOD ---\nEnter 2 alphanumeric characters: ");
+    scanf("%s", inputText);
+    if (strlen(inputText) != 2 || !isAlphanumeric(inputText)) return;
+    stringToBinary(inputText, data);
+    strncpy(block1, data, 8); block1[8] = '\0';
+    strncpy(block2, data + 8, 8); block2[8] = '\0';
+    calculateChecksum(block1, block2, chksum);
+    sprintf(codeword, "%s%s%s", block1, block2, chksum);
+    codewordLen = strlen(codeword);
+    printf("Separate bits in output display?\n1. Yes (Separated Format)\n2. No (Combined Format)\nSelect: ");
+    scanf("%d", &sepChoice);
+    printf("\n1. Error-Free\n2. Introduce Errors\nSelect: ");
+    scanf("%d", &simChoice);
+    strcpy(received, codeword);
+    if (simChoice == 2) {
+        printf("How many bits to flip? ");
+        scanf("%d", &numErrors);
+        injectErrors(numErrors, codewordLen);
+    }
+    strncpy(rBlock1, received, 8); rBlock1[8] = '\0';
+    strncpy(rBlock2, received + 8, 8); rBlock2[8] = '\0';
+    strncpy(rChksum, received + 16, 8); rChksum[8] = '\0';
+    strncpy(receivedPayload, received, 16);
+    receivedPayload[16] = '\0';
+    binaryToString(receivedPayload, outputText);
+    calculateChecksum(rBlock1, rBlock2, recChksum);
+    if (sepChoice == 1) {
+        printf("\nTransmitted Codeword: %s %s [Data Blocks] + %s [Checksum Bits]\n", block1, block2, chksum);
+        printf("Received Codeword   : %s %s [Data Blocks] + %s [Checksum Bits]\n", rBlock1, rBlock2, rChksum);
+    } else {
+        printf("\nTransmitted Codeword: %s\n", codeword);
+        printf("Received Codeword   : %s\n", received);
+    }
+    printf("Received Message    : %s\n", outputText);
+    if (strcmp(recChksum, rChksum) == 0) printf("Status              : No error detected!\n");
+    else printf("Status              : Error safely detected!\n");
+}
+void doXor() {
+    int i;
+    for (i = 1; i < genLen; i++) temp[i - 1] = (temp[i] == generator[i]) ? '0' : '1';
+}
+void calculateCRC(char *inputData) {
+    strcpy(temp, inputData);
+    int pick = genLen, i;
+    while (pick <= strlen(inputData)) {
+        if (temp[0] == '1') {
+            doXor();
+            temp[genLen - 1] = inputData[pick];
+        } else {
+            for (i = 0; i < genLen - 1; i++) temp[i] = temp[i + 1];
+            temp[genLen - 1] = inputData[pick];
+        }
+        pick++;
+    }
+    strncpy(rem, temp, genLen - 1);
+    rem[genLen - 1] = '\0';
+}
+void runCrcDemo() {
+    int simChoice, numErrors, i, isValid;
+    char savedRemainder[100], receivedPayload[800];
+    printf("\n--- CRC METHOD ---\nEnter alphanumeric message: ");
+    scanf("%s", inputText);
+    if (!isAlphanumeric(inputText)) return;
+    printf("Enter generator polynomial: ");
+    scanf("%s", generator);
+    if (isGoodDivisor(generator)) printf("Divisor Status       : GOOD Divisor Polynomial\n");
+    else {
+        printf("Divisor Status       : NOT GOOD Divisor (Must have at least 2 bits, start and end with '1')\nProcess aborted.\n");
+        return;
+    }
+    stringToBinary(inputText, data);
+    dataLen = strlen(data);
+    genLen = strlen(generator);
+    strcpy(codeword, data);
+    for (i = 0; i < genLen - 1; i++) codeword[dataLen + i] = '0';
+    codeword[dataLen + genLen - 1] = '\0';
+    calculateCRC(codeword);
+    strcpy(savedRemainder, rem);
+    strcpy(codeword, data);
+    strcat(codeword, savedRemainder);
+    codewordLen = strlen(codeword);
+    printf("\n1. Error-Free\n2. Introduce Errors\nSelect: ");
+    scanf("%d", &simChoice);
+    strcpy(received, codeword);
+    if (simChoice == 2) {
+        printf("How many bits to flip? ");
+        scanf("%d", &numErrors);
+        injectErrors(numErrors, codewordLen);
+    }
+    calculateCRC(received);
+    strncpy(receivedPayload, received, dataLen);
+    receivedPayload[dataLen] = '\0';
+    binaryToString(receivedPayload, outputText);
+    printf("\nTransmitted Codeword : %s [Data Block] + %s [CRC Bits]\n", data, savedRemainder);
+    printf("Received Codeword    : %s\n", received);
+    printf("Received Message     : %s\n", outputText);
+    printf("Receiver Remainder   : %s\n", rem);
+    isValid = 1;
+    for (i = 0; i < genLen - 1; i++) if (rem[i] != '0') isValid = 0;
+    printf("Status               : %s\n", isValid ? "No error detected!" : "Error safely detected!");
+}
+int main() {
+    int mainChoice;
+    while (1) {
+        printf("\n=== ERROR DETECTION MENU ===\n1. Parity Check\n2. Checksum\n3. CRC\n4. Exit\nChoice: ");
+        scanf("%d", &mainChoice);
+        switch (mainChoice) {
+            case 1: runParityDemo(); break;
+            case 2: runChecksumDemo(); break;
+            case 3: runCrcDemo(); break;
+            case 4: return 0;
+            default: printf("Invalid selection.\n");
+        }
+    }
+    return 0;
+}
