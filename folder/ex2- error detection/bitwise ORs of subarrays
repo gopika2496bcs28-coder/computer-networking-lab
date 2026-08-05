@@ -1,0 +1,31 @@
+#define MAX_VAL 1000000 
+int seen[MAX_VAL] = {0}; 
+int subarrayBitwiseORs(int* arr, int arrSize) {
+    int distinct_count = 0;
+    for (int i = 0; i < arrSize; i++) {
+        int current_or = 0;        
+        for (int j = i; j >= 0; j--) {
+            current_or |= arr[j];
+            if (seen[current_or] == 0) {
+                seen[current_or] = 1;
+                distinct_count++;
+            }
+        }
+    }
+    for (int i = 0; i < arrSize; i++) {
+        int current_or = 0;
+        for (int j = i; j >= 0; j--) {
+            current_or |= arr[j];
+            seen[current_or] = 0; 
+        }
+    }
+    return distinct_count;
+}
+
+input
+arr =
+[0]
+Output
+1
+Expected
+1
