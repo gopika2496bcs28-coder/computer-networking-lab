@@ -1,0 +1,68 @@
+Input Format
+The first line contains an integer , the number of the test cases.
+Each of the next pairs of lines is as follows:
+- The first line of each test case contains an integer , the number of elements in .
+- The second line of each test case contains space-separated integers .
+Constraints
+Sample Input 0
+2
+3
+1 2 3
+4
+4 5 7 5
+Sample Output 0
+2
+0
+
+#include <stdio.h>
+#include <stdlib.h>
+
+// Complete the sansaXor function below.
+int sansaXor(int arr_count, int* arr) {
+    // If the array size is even, all elements cancel out to 0
+    if (arr_count % 2 == 0) {
+        return 0;
+    }
+    
+    int result = 0;
+    // If odd, XOR elements at even indices (0, 2, 4, ...)
+    for (int i = 0; i < arr_count; i += 2) {
+        result ^= arr[i];
+    }
+    
+    return result;
+}
+
+int main() {
+    int t;
+    if (scanf("%d", &t) != 1) return 0;
+    
+    while (t--) {
+        int n;
+        if (scanf("%d", &n) != 1) return 0;
+        
+        int *arr = (int *)malloc(n * sizeof(int));
+        for (int i = 0; i < n; i++) {
+            if (scanf("%d", &arr[i]) != 1) return 0;
+        }
+        
+        int result = sansaXor(n, arr);
+        printf("%d\n", result);
+        
+        free(arr);
+    }
+    
+    return 0;
+}
+
+Compiler Message
+Success
+Input (stdin)
+    2
+    3
+    1 2 3
+    4
+    4 5 7 5
+Expected Output
+    2
+    0
